@@ -11,15 +11,16 @@ class SynapseContract:
     edge_id: str
     from_node: str
     to_node: str
-    intent: str          # what must be semantically preserved
-    description: str     # human-readable explanation
+    intent: str
+    description: str
 
 
-# ── The three handoff contracts for the Research Pipeline ────
+# Keys match the edge_id format used in main.py:
+# f"{from_node}_to_{to_node}"
 
 CONTRACTS: dict[str, SynapseContract] = {
-    "planner_to_researcher": SynapseContract(
-        edge_id="planner_to_researcher",
+    "query_planner_to_web_researcher": SynapseContract(
+        edge_id="query_planner_to_web_researcher",
         from_node="query_planner",
         to_node="web_researcher",
         intent=(
@@ -28,8 +29,8 @@ CONTRACTS: dict[str, SynapseContract] = {
         ),
         description="Planner → Researcher: research question + constraints must survive",
     ),
-    "researcher_to_analyst": SynapseContract(
-        edge_id="researcher_to_analyst",
+    "web_researcher_to_evidence_analyst": SynapseContract(
+        edge_id="web_researcher_to_evidence_analyst",
         from_node="web_researcher",
         to_node="evidence_analyst",
         intent=(
@@ -38,8 +39,8 @@ CONTRACTS: dict[str, SynapseContract] = {
         ),
         description="Researcher → Analyst: facts + attribution must not be stripped",
     ),
-    "analyst_to_writer": SynapseContract(
-        edge_id="analyst_to_writer",
+    "evidence_analyst_to_report_writer": SynapseContract(
+        edge_id="evidence_analyst_to_report_writer",
         from_node="evidence_analyst",
         to_node="report_writer",
         intent=(
