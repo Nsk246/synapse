@@ -3,17 +3,20 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useGraphStore } from './useGraphStore'
 import type { SynapseEvent } from '@/lib/types'
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws/trace'
+const WS_URL  = process.env.NEXT_PUBLIC_WS_URL  ?? 'ws://localhost:8000/ws/trace'
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 export function useSynapseSocket() {
-  const wsRef       = useRef<WebSocket | null>(null)
-  const pingRef     = useRef<ReturnType<typeof setInterval> | null>(null)
+  const wsRef        = useRef<WebSocket | null>(null)
+  const pingRef      = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mountedRef   = useRef(true)
   const processEvent = useGraphStore(s => s.processEvent)
   const resetRun     = useGraphStore(s => s.resetRun)
 
   const connect = useCallback(() => {
+    if (!mountedRef.current) return
     if (wsRef.current?.readyState === WebSocket.OPEN) return
+
     const ws = new WebSocket(WS_URL)
 
     ws.onopen = () => {
@@ -33,7 +36,7 @@ export function useSynapseSocket() {
     ws.onclose = () => {
       console.log('[Synapse] WS closed — reconnecting in 2s')
       if (pingRef.current) clearInterval(pingRef.current)
-      setTimeout(connect, 2000)
+      if (mountedRef.current) setTimeout(connect, 2000)
     }
 
     ws.onerror = () => ws.close()
@@ -41,15 +44,18 @@ export function useSynapseSocket() {
   }, [processEvent])
 
   useEffect(() => {
+    mountedRef.current = true
     connect()
     return () => {
+      mountedRef.current = false
       if (pingRef.current) clearInterval(pingRef.current)
       wsRef.current?.close()
     }
   }, [connect])
 
   const triggerRun = useCallback(async (query: string, threshold: number) => {
-    resetRun()
+    resetRun()                          // ← clear state before each run
+    await new Promise(r => setTimeout(r, 50))  // ← let reset flush to store
     const res = await fetch(`${API_URL}/api/run`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
